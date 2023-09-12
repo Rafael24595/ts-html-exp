@@ -1,0 +1,14 @@
+{
+  "name": "html-tools",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Html-Tools.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.6.0"
+  }
+}
