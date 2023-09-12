@@ -1,9 +1,13 @@
 class HtmlTools {
 
     public static init(): void {
+        HtmlTools.buildSelectExpanded();
+    }
+
+    private static buildSelectExpanded(): void {
         const selects = document.getElementsByTagName('select-expanded');
         for (let index = 0; index < selects.length; index++) {
-            const select = selects[index] as HTMLDivElement;
+            const select = selects[index] as HTMLSelectElement;
             new SelectExpanded(select);
         }
     }
@@ -12,12 +16,12 @@ class HtmlTools {
 
 class SelectExpanded {
 
-    private select: HTMLDivElement;
+    private select: HTMLSelectElement;
     private selectContainer: HTMLDivElement;
     private actionsContainer: HTMLDivElement;
     private optionsContainer: HTMLDivElement;
 
-    public constructor(select: HTMLDivElement) {
+    public constructor(select: HTMLSelectElement) {
         this.implementStyles(); 
 
         this.select = select;
@@ -34,9 +38,12 @@ class SelectExpanded {
     }
 
     private implementStyles() {
-        const style = document.createElement('style');
-        style.innerHTML = css;
-        document.getElementsByTagName('head')[0].appendChild(style);
+        if(document.getElementById("select-expanded") == undefined) {
+            const style = document.createElement('style');
+            style.id = "select-expanded";
+            style.innerHTML = SelectExpandedCss;
+            document.getElementsByTagName('head')[0].appendChild(style);
+        }
     }
 
     private createSelectContainer() {
@@ -66,12 +73,33 @@ class SelectExpanded {
     private buildActionInput() {
         const input = document.createElement("input");
         input.onkeyup = (event: any) => this.filterOptions(event.target.value);
+        
+        const name = this.select.getAttribute("name");
+        if(name != undefined)
+            input.setAttribute("name", name);
+        
+        let value = "";
+
+        const selected = this.getSelectedOption();
+        if(selected != undefined) {
+            const selectValue = selected.getAttribute("value");
+            value = selectValue != null ? selectValue : value;
+        } else {
+            const options = this.getOptions();
+            if(options.length > 0) {
+                const selectValue = options[0].getAttribute("value");
+                value = selectValue != null ? selectValue : value;
+            }
+        }
+    
+        input.value = value;
+
         this.actionsContainer.appendChild(input);
     }
 
     private buildActionButton() {        
         const button = document.createElement("button");
-        button.innerText = "V"
+        button.innerText = "▾"
         button.onclick = () => this.expandSelect();
         this.actionsContainer.appendChild(button);
     }
@@ -93,8 +121,18 @@ class SelectExpanded {
         this.optionsContainer.appendChild(innerOptionsContainer);
     }
 
-    private getOptions() {
-        return this.select.getElementsByTagName("option-expanded");
+    private getOptions(): HTMLCollectionOf<HTMLOptionElement> {
+        return this.select.getElementsByTagName("option-expanded") as HTMLCollectionOf<HTMLOptionElement>;
+    }
+
+    private getSelectedOption(): HTMLOptionElement | undefined {
+        const options = this.getOptions();
+        for (let index = 0; index < options.length; index++) {
+            const option = options[index];
+            if(option.attributes.getNamedItem("selected"))
+                return option;
+        }
+        return undefined;
     }
 
     private getInput() {
@@ -109,22 +147,24 @@ class SelectExpanded {
     }
 
     private selectOption(event: any, input: HTMLInputElement) {
-        input.value = event.target.innerText
-        input.setAttribute("value", event.target.innerText)
-        this.filterOptions(input.value)
+        input.value = event.target.value;
+        this.expandSelect();
+        this.filterOptions("");
     }
 
     private filterOptions(value: any) {
         const options = this.optionsContainer.getElementsByTagName("option-expanded");
         for (let index = 0; index < options.length; index++) {
             const option = options[index] as HTMLOptionElement;
-            option.style.display = option.innerText.toLowerCase().includes(value.toLowerCase()) ? "initial" : "none";
+            const optionValue = option.getAttribute("value");
+            if(optionValue != null)
+                option.style.display = optionValue.toLowerCase().includes(value.toLowerCase()) ? "initial" : "none";
         }
     }
 
 }
 
-const css: string = `
+const SelectExpandedCss: string = `
     select-expanded {
         display: inline-block;
     }
@@ -149,6 +189,7 @@ const css: string = `
     .select-actions-container button {
         border: 0px;
         border-left: 1px solid black;
+        font-weight: bold;
     }
 
     .select-options-container {
@@ -163,9 +204,16 @@ const css: string = `
         position: relative;
         height: max-content;
         border: 1px solid black;
-        padding: 10px;
-        padding-right: 25px;
         background-color: white;
+    }
+
+    .select-options option-expanded {
+        padding-left: 5px;
+        padding-right: 30px;
+    }
+
+    .select-options option-expanded:hover {
+        background-color: dodgerblue;
     }
 
     .hidden {
