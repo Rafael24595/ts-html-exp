@@ -23,18 +23,29 @@ class SelectExpanded {
 
     public constructor(select: HTMLSelectElement) {
         this.implementStyles(); 
-
+        this.implementBaseEvents();
+        
         this.select = select;
         this.selectContainer = this.createSelectContainer();
         this.actionsContainer = this.createActionsContainer();
         this.optionsContainer = this.createOptionsContainer();
-
+        
         this.buildActionsContainer();
         this.buildOptionsContainer();
-
+        
         select.append(this.selectContainer);
         this.selectContainer.append(this.actionsContainer);
         this.selectContainer.append(this.optionsContainer);
+    }
+    
+    private implementBaseEvents() {
+        document.addEventListener('click', this.clickOutside.bind(this));
+    }
+
+    private clickOutside(event: MouseEvent) {
+        if (this.isExpanded() && this.select !== event.target && !this.select.contains(event.target as Node)) {    
+            this.expandSelect();
+        }
     }
 
     private implementStyles() {
@@ -77,22 +88,21 @@ class SelectExpanded {
         const name = this.select.getAttribute("name");
         if(name != undefined)
             input.setAttribute("name", name);
-        
-        let value = "";
 
-        const selected = this.getSelectedOption();
-        if(selected != undefined) {
-            const selectValue = selected.getAttribute("value");
-            value = selectValue != null ? selectValue : value;
-        } else {
+        let selected = this.getSelectedOption();
+        if(selected == undefined) {
             const options = this.getOptions();
             if(options.length > 0) {
-                const selectValue = options[0].getAttribute("value");
-                value = selectValue != null ? selectValue : value;
+                selected = options[0];
             }
+        } 
+        
+        if(selected != undefined) {
+            const selectValue = selected.getAttribute("value");
+            const value = selectValue != null ? selectValue : "";
+            selected.classList.add("hover");
+            input.value = value;
         }
-    
-        input.value = value;
 
         this.actionsContainer.appendChild(input);
     }
@@ -139,15 +149,19 @@ class SelectExpanded {
         return this.actionsContainer.getElementsByTagName("input")[0];
     }
 
+    private isExpanded() {
+        return !this.optionsContainer.classList.contains("hidden");
+    }
+
     private expandSelect() {
-        if(this.optionsContainer.classList.contains("hidden"))
-            this.optionsContainer.classList.remove("hidden")
-        else
+        if(this.isExpanded())
             this.optionsContainer.classList.add("hidden")
+        else
+            this.optionsContainer.classList.remove("hidden")
     }
 
     private selectOption(event: any, input: HTMLInputElement) {
-        input.value = event.target.value;
+        input.value = event.target.getAttribute("value");
         this.expandSelect();
         this.filterOptions("");
     }
@@ -157,14 +171,23 @@ class SelectExpanded {
         for (let index = 0; index < options.length; index++) {
             const option = options[index] as HTMLOptionElement;
             const optionValue = option.getAttribute("value");
-            if(optionValue != null)
-                option.style.display = optionValue.toLowerCase().includes(value.toLowerCase()) ? "initial" : "none";
+            if(optionValue != null){
+                if(optionValue.toLowerCase().includes(value.toLowerCase()))
+                    option.classList.remove("hidden-keep-width");
+                else
+                    option.classList.add("hidden-keep-width");
+            }
+            if(optionValue == this.getInput().value)
+                option.classList.add("hover");
+            else 
+                option.classList.remove("hover");
         }
     }
 
 }
 
 const SelectExpandedCss: string = `
+
     select-expanded {
         display: inline-block;
     }
@@ -221,6 +244,16 @@ const SelectExpandedCss: string = `
         visibility: hidden;
         height: 0px;
     }
+
+    .hover {
+        background-color: lightgray;
+    }
+
+    .hidden-keep-width {
+        visibility: hidden;
+        height: 0px;
+    }
+
 `;
 
 window.onload = HtmlTools.init;
